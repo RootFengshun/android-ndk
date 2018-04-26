@@ -16,37 +16,33 @@
 
 cmake_minimum_required(VERSION 3.4.1)
 
-# build native_app_glue as a static lib
-add_library(native_app_glue STATIC
-    ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -Wall -fno-exceptions -fno-rtti")
-
 # build the ndk-helper library
-set(ndk_helper_dir ../../../../common/ndk_helper)
-add_subdirectory(${ndk_helper_dir} ndk_helper)
-
-# Export ANativeActivity_onCreate(), 
-# Refer to: https://github.com/android-ndk/ndk/issues/381.
-set(CMAKE_SHARED_LINKER_FLAGS
-    "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
+get_filename_component(ndkHelperSrc ../../../../common/ndk_helper ABSOLUTE)
+get_filename_component(ndkHelperBin ${ndkHelperSrc}/../ndkHelperBin ABSOLUTE)
+add_subdirectory(${ndkHelperSrc} ndkHelperBin)
 
 # now build app's shared lib
-add_library(ChoreographerNativeActivity SHARED
+add_library(ChoreographerNativeActivity
+  SHARED
     ChoreographerNativeActivity.cpp
-    TeapotRenderer.cpp)
+    TeapotRenderer.cpp
+)
 
-target_include_directories(ChoreographerNativeActivity PRIVATE
-    ${ANDROID_NDK}/sources/android/cpufeatures
-    ${ANDROID_NDK}/sources/android/native_app_glue
-    ${ndk_helper_dir})
+set_target_properties(ChoreographerNativeActivity
+  PROPERTIES
+    CXX_STANDARD 11
+    CXX_STANDARD_REQUIRED YES
+    CXX_EXTENSIONS NO
+)
+
+# Export ANativeActivity_onCreate(),
+# Refer to: https://github.com/android-ndk/ndk/issues/381.
+set_target_properties(ChoreographerNativeActivity
+  PROPERTIES  LINK_FLAGS "-u ANativeActivity_onCreate")
 
 # add lib dependencies
 target_link_libraries(ChoreographerNativeActivity
-    android
-    native_app_glue
-    atomic
-    EGL
-    GLESv2
-    log
-    ndk-helper)
+  PRIVATE
+    NdkHelper
+)
+
